@@ -13,41 +13,36 @@ import win32ui
 import winsound
 from win32api import GetSystemMetrics
 
-ACTIVATION_RANGE = 1080 # Box size in px
-MID_X = ACTIVATION_RANGE / 2
-MID_Y = ACTIVATION_RANGE / 2
-COLVAR = 8
-#COLOR='#FFFF38'    #Yellow PROP  
-COLOR = '#33AEBC'   #Teal 
-COLOR2 = '#1BECEA'  
-COLOR3 = '#21FFFF'
+ESP_ENABLE = 1                  #Enable ESP for mouse movement       
+FIRE_ENABLE = 0                 #Enable ESP for mouse clicking / shooting     
+DETECTION_RANGE = 1080          #Detection Box size in px
+ACTIVATION_RANGE = 125          #Lock on range box size in px 
+COLVAR = 8                      #Maximum variation in Red, Green, and Blue
+AIM = "head"                    #Aim location. "head" or "center"
+SENS   = 3                      #Bot sens. WIP. 
 INGAMESENS = .188 
-SENS   = 3
-#AIM = "center"
-AIM = "head"
-CONFIDENCE_THRESHOLD = 0.6
-NMS_THRESHOLD = 0.7
-MAX_DET = 5
-
+#ML Variables: 
+CONFIDENCE_THRESHOLD = 0.6      #Minimum confidence for detection
+NMS_THRESHOLD = 0.7             #Box Supression for overlapping detections 
+MAX_DET = 5                     #Maximum Number of detections 
+#Screen Variables 
+MID_X = DETECTION_RANGE / 2
+MID_Y = DETECTION_RANGE / 2
 # Globals: 
 monitor = centerX = centerY = lower = upper = esp = lastAvg = None
-#init arrays 
+#Init arrays 
 imageTime = colorTime = distTime = totTime = []
-
-
+#Screen Objects 
 dc = win32gui.GetDC(0)
 dcObj = win32ui.CreateDCFromHandle(dc) 
 
-def hex_to_rgb(h):
-    h = h.lstrip('#')
-    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
 
-def drawLine( x, y):
-    win32gui.MoveToEx(dc,int(Wd/2),int(Hd/2))
-    win32gui.LineTo(dc, x, y)
-    
+#---------------------------Functions----------------------------
+
 
 def grab_screen(region=None):
+    """Returns an array of pixels in the defined region """
+
     hwin = win32gui.GetDesktopWindow()
 
     if region:
@@ -80,78 +75,50 @@ def grab_screen(region=None):
 
 
     return cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)    
-    #return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-def drawRect(bbox, i, lbl):
+
+def displayVision(bbox, i, lbl):
+    """Opens an Additional window to display machine learning output
+
+    Draws squares around each detection and labels their respective confidence. Labels each detections class. 
+    Draws a line to the closest detection aim point. 
+    """
     #Draw Rectangle around Enemies:
     for box in bbox: 
         cv2.rectangle(img, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 2)
         cv2.putText(img, str(box[6]), (box[0], box[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
         cv2.putText(img, str(lbl), (box[0], box[1] + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
         
-    cv2.line(img, (int(bbox[i][4]), int(bbox[i][5])), (int(ACTIVATION_RANGE / 2), int(ACTIVATION_RANGE / 2)),
+    cv2.line(img, (int(bbox[i][4]), int(bbox[i][5])), (int(DETECTION_RANGE / 2), int(DETECTION_RANGE / 2)),
         (255, 0, 0), 1, cv2.LINE_AA)
     #resize = cv2.resize(img, (340, 340))
     cv2.imshow("Detection", img)
     cv2.waitKey(1)
     
      
-
-
-#-------------------------------------------------
-# espInit(): Initialize ESP using serial library
-#   and clear in/out buffers 
-#-------------------------------------------------
 def espInit(): 
+    """Initialize ESP using serial library and clear in/out buffers"""
     global esp
     esp = serial.Serial('COM5', 115200, timeout=None)   #Will wait for data on read 
     #esp = serial.Serial('COM5', 115200, timeout=0   )   #No wait for data on read 
     esp.reset_output_buffer()
     esp.reset_input_buffer()
 
-#-------------------------------------------------
-# getScreenRed(): Get monitor width and height,
-#   Get center of screen:v
-#-------------------------------------------------
+
 def getScreenRes(): 
+    """Get monitor width and height, get center of screen"""
     global monitor, centerX, centerY, sct
     with mss.mss() as sct:
         Wd, Hd = sct.monitors[1]["width"], sct.monitors[1]["height"]
-        monitor = (int(Wd / 2 - ACTIVATION_RANGE / 2),
-                int(Hd / 2 - ACTIVATION_RANGE / 2),
-                int(Wd / 2 + ACTIVATION_RANGE / 2),
-                int(Hd / 2 + ACTIVATION_RANGE / 2))
+        monitor = (int(Wd / 2 - DETECTION_RANGE / 2),
+                int(Hd / 2 - DETECTION_RANGE / 2),
+                int(Wd / 2 + DETECTION_RANGE / 2),
+                int(Hd / 2 + DETECTION_RANGE / 2))
         
         #Center of Screen
         centerX = int(Wd/2)
         centerY = int(Hd/2)
 
-#-------------------------------------------------
-# updateColors(col): Uses 
-#-------------------------------------------------
-def updateColors(col):
-    #Get Colors: 
-    red, green, blue = hex_to_rgb(col)
-    #Lower and upper colors (frame is BGR not RGB)
-    global lower, upper
-    lower = [blue-COLVAR, green-COLVAR, red-COLVAR]
-    upper = [blue+COLVAR, green+COLVAR, red+COLVAR]
-
-    #Error check: 
-    for i in range(len(lower)):
-        if lower[i] < 0:
-            lower[i] = 0
-        if upper[i] > 255: 
-            upper[i] = 255
-    
-
-#-------------------------------------------------
-# waitRightClick(): infinite loop until right
-#   mouse pressed
-#-------------------------------------------------
-def waitRightClick():
-    while not (win32api.GetKeyState(0x05) == -127 or win32api.GetKeyState(0x05) == -128):
-        time.sleep(.00001)
 
 #-------------------------------------------------
 # avgList(): returns average value of an entire 
@@ -195,17 +162,14 @@ def printTimes(t):
         lastAvg = time.time()
 
 
-
-
+#==========================MAIN===============================
 if __name__ == "__main__": 
-    #Open connection
-    espInit()
+    if ESP_ENABLE: 
+        #Open connection
+        espInit()
 
     #Get monitor width and height, Get center of screen:
     getScreenRes()
-
-    #Get Colors: 
-    updateColors(COLOR)
 
     #Record Time
     start = time.time()
@@ -223,12 +187,12 @@ if __name__ == "__main__":
     model = torch.hub.load('yolov5', 'custom', path=r"C:\Users\Gabe\Documents\PersonalFiles\AimLabs-BotTEST\yolov5\runs\train\CS-Nano300Epoch\weights\best.pt",\
                         source='local')
 
+    #Assign model variables 
     model.conf = CONFIDENCE_THRESHOLD
     model.iou  = NMS_THRESHOLD
     model.max_det = MAX_DET
 
     #Wait for user 
-    
     print("Press M4 to start")
     while not (win32api.GetKeyState(0x05) == -127 or win32api.GetKeyState(0x05) == -128):
         time.sleep(.02)
@@ -236,10 +200,10 @@ if __name__ == "__main__":
     time.sleep(1)
     print("GO!")
 
-    toggle = 1
 
-    X=True
-    while X:
+    toggle = 1
+    loop = True
+    while loop:
         #Check Toggle: 
         if (not toggle and win32api.GetKeyState(0x05) == -127 or win32api.GetKeyState(0x05) == -128): 
             toggle = 1
@@ -255,7 +219,7 @@ if __name__ == "__main__":
             cv2.destroyAllWindows()
             sct.close()
             esp.close()
-            X = False
+            loop = False
             break
         
 
@@ -289,28 +253,35 @@ if __name__ == "__main__":
 
             dist1 = time.time()
             for i in range(len(box)): 
-                x1 = int(box[i][0] * ACTIVATION_RANGE)
-                y1 = int(box[i][1] * ACTIVATION_RANGE)
-                x2 = int(box[i][2] * ACTIVATION_RANGE)
-                y2 = int(box[i][3] * ACTIVATION_RANGE)
-                width = x2-x1 
-                height = y2-y1 
-                conf = round((box[i][4]) * 100, 2)
+                x1 = int(box[i][0] * DETECTION_RANGE)
+                y1 = int(box[i][1] * DETECTION_RANGE)
+                x2 = int(box[i][2] * DETECTION_RANGE)
+                y2 = int(box[i][3] * DETECTION_RANGE)
+                width = x2-x1           #Box width  
+                height = y2-y1          #Box height 
+                #Calculate aim width 
                 centerX = x1 + (width / 2)
+                #Calculate aim height 
                 if AIM == "center":
                     centerY = y1 + (height / 2)  
                 elif AIM == "head":
                     centerY = y1 + (height / 6) 
+                #Assign Confidence 
+                conf = round((box[i][4]) * 100, 2)
+                #Assign Classes 
                 if box[i][5]:
                     lbl = 'T'
                 else:
                     lbl = 'CT'
 
-                distance = int(math.sqrt(((centerX - ACTIVATION_RANGE / 2) ** 2) + ((centerY - ACTIVATION_RANGE / 2) ** 2)))
+                #Calculate distance to middle of screen 
+                distance = int(math.sqrt(((centerX - DETECTION_RANGE / 2) ** 2) + ((centerY - DETECTION_RANGE / 2) ** 2)))
                 distances.append(distance)
-            
+
+                #Save each box 
                 bbox.append([x1, y1, x2, y2, centerX, centerY, conf, lbl])
 
+                #Find closest box 
                 if distances[i] < closest:
                     closest = distances[i]
                     closestObject = i
@@ -320,43 +291,38 @@ if __name__ == "__main__":
                 
 
             if closestObject is not None: 
-                #get dX, dY 
                 movX = int(closestX * SENS)
                 movY = int(closestY * SENS)
                 #Turn into string for ESP 
                 data = str(movX) + ':' + str(movY) + '\n' 
 
                 dispt1 = time.time()
-                drawRect(bbox, closestObject, lbl)
+                displayVision(bbox, closestObject, lbl)
                 dispt2 = time.time()    
 
-            
+                #Ensure target within attack radius 
                 minmove = abs(closestX) > 2 or abs(closestY) > 2
-                maxmove = abs(closestX) < 150 and abs(closestY) < 150
-                print(minmove, maxmove)
+                maxmove = abs(closestX) < ACTIVATION_RANGE and abs(closestY) < ACTIVATION_RANGE
 
                 writet1 = time.time()
-                if(minmove and maxmove): 
-                    #write to esp v
-                
+                if(minmove and maxmove and ESP_ENABLE): 
                     #Wait for confirmation from last execution 
                     resp = esp.readline()
                     while b"complete" not in resp:
                         resp = esp.readline()
                     esp.write(data.encode()) 
+                
+                    #Fire and wait for reply 
+                    if FIRE_ENABLE:             
+                        if ((time.time() - lastshot) > .1):
+                            hit = str("hit\n")
+                            esp.write(hit.encode())
+                            resp = esp.readline()
+                            lastshot = time.time()
+                        while b"complete" not in resp:
+                            resp = esp.readline()        
                 writet2 = time.time()
-            
-                #if ((time.time() - lastshot) > .1):
-                #    hit = str("hit\n")
-                #    esp.write(hit.encode())
-                #    resp = esp.readline()
-                #    lastshot = time.time()
 
-                #while b"complete" not in resp:
-                #    resp = esp.readline()
-                #    print(resp)
-
-                AIt2 = time.time()
 
                 ##Prints: 
                 print("-----------------------")
@@ -364,84 +330,8 @@ if __name__ == "__main__":
                 print("Display Time: ", round((dispt2 - dispt1)* 1000, 2), "ms")
                 print("Distance Time:", round((dist2 - dist1)* 1000, 2), "ms")
                 print("Write Time:   ", round((writet2 - writet1)* 1000, 2), "ms")
-                print("Total Time:   ", round((AIt2 - getImg1)* 1000, 2), "ms")
+                print("Total Time:   ", round((writet2 - getImg1)* 1000, 2), "ms")
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-        # #Get location of each color within range 
-        # getCol1 = time.time()
-        # [y, x] = np.where((lower[0] <= frame[:,:,0]) & (upper[0] >= frame[:,:,0]) & 
-        #                   (lower[1] <= frame[:,:,1]) & (upper[1] >= frame[:,:,1]) & 
-        #                   (lower[2] <= frame[:,:,2]) & (upper[2] >= frame[:,:,2]))
-        # # if len(y) > 1000:
-        # #     y = y[1::2]
-        # #     x = x[1::2]
-        # getCol2 = time.time()
-
-        # #Clear Search parameters 
-        # distances = []
-        # closest = 10000
-        # closestEnemy = None
-
-        # #Check for successfull hit in middle of screen
-        # getDist1 = time.time()
-        # if (MID_X in x[np.where(np.logical_and(y>=MID_Y - HIT_REGION, y<=MID_Y + HIT_REGION))]) or \
-        #     (MID_Y in y[np.where(np.logical_and(x>=MID_X - HIT_REGION, x<=MID_X + HIT_REGION))]):
-        #     hit = str("hit\n")
-        #     esp.write(hit.encode())
-        #     esp.read(1)
-        #     esp.reset_input_buffer()
-        #     lstClickTime=time.time()
-        
-
-        # #Else Check whole region 
-        # else: 
-        #     for i in range(len(x)):
-        #         #Else get distances TODO Optimize? 
-        #         dist = int(math.sqrt((x[i] - ACTIVATION_RANGE/2)**2 + (y[i] - ACTIVATION_RANGE/2)**2))  
-        #         distances.append(dist)
-
-        #         #Get closest obj.
-        #         if distances[i] < closest: 
-        #             closest = distances[i]
-        #             closestEnemy = i
-
-        # getDist2 = time.time()
-        
-
-        # if closestEnemy is not None: 
-        #     #get dX, dY 
-        #     movX = int(((x[closestEnemy] - MID_X) + 1) * SENS) 
-        #     movY = int(((y[closestEnemy] - MID_Y) + 1) * SENS) 
-        #     if abs(movX) <= 2 and abs(movY) <= 2:
-        #         hit = str("hit\n")
-        #         esp.write(hit.encode())
-        #         esp.read(1)
-        #         esp.reset_input_buffer()
-        #         lstClickTime=time.time()
-        #     else:
-        #         #Turn into string for ESP 
-        #         data = str(movX) + ':' + str(movY) + '\n' 
-        #         #Write to ESP 
-        #         esp.write(data.encode()) 
-        #         esp.read(1)
-        #         esp.reset_input_buffer()
-        #         #Wait for ESP to send 'OK' bit  
-
-
-
-
-        # times = [getImg1, getImg2, getCol1, getCol2, getDist1, getDist2] 
-        # printTimes(times)   
+#==========================GUI===============================
