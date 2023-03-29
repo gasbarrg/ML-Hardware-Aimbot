@@ -1,3 +1,4 @@
+from logging import exception
 import time
 import torch
 import cv2
@@ -13,7 +14,7 @@ import win32ui
 import winsound
 from win32api import GetSystemMetrics
 
-ESP_ENABLE = 1                  #Enable ESP for mouse movement       
+ESP_ENABLE = 0                  #Enable ESP for mouse movement       
 FIRE_ENABLE = 0                 #Enable ESP for mouse clicking / shooting     
 DETECTION_RANGE = 1080          #Detection Box size in px
 ACTIVATION_RANGE = 125          #Lock on range box size in px 
@@ -22,9 +23,9 @@ AIM = "head"                    #Aim location. "head" or "center"
 SENS   = 3                      #Bot sens. WIP. 
 INGAMESENS = .188 
 #ML Variables: 
-CONFIDENCE_THRESHOLD = 0.6      #Minimum confidence for detection
+CONFIDENCE_THRESHOLD = 0.38      #Minimum confidence for detection
 NMS_THRESHOLD = 0.7             #Box Supression for overlapping detections 
-MAX_DET = 5                     #Maximum Number of detections 
+MAX_DET = 8                     #Maximum Number of detections 
 #Screen Variables 
 MID_X = DETECTION_RANGE / 2
 MID_Y = DETECTION_RANGE / 2
@@ -86,8 +87,8 @@ def displayVision(bbox, i, lbl):
     #Draw Rectangle around Enemies:
     for box in bbox: 
         cv2.rectangle(img, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 2)
-        cv2.putText(img, str(box[6]), (box[0], box[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-        cv2.putText(img, str(lbl), (box[0], box[1] + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        cv2.putText(img, str(box[6]), (box[0], box[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 2)
+        cv2.putText(img, str(lbl), (box[0], box[1] + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 2)
         
     cv2.line(img, (int(bbox[i][4]), int(bbox[i][5])), (int(DETECTION_RANGE / 2), int(DETECTION_RANGE / 2)),
         (255, 0, 0), 1, cv2.LINE_AA)
@@ -99,11 +100,15 @@ def displayVision(bbox, i, lbl):
 def espInit(): 
     """Initialize ESP using serial library and clear in/out buffers"""
     global esp
-    esp = serial.Serial('COM5', 115200, timeout=None)   #Will wait for data on read 
-    #esp = serial.Serial('COM5', 115200, timeout=0   )   #No wait for data on read 
-    esp.reset_output_buffer()
-    esp.reset_input_buffer()
-
+    try:
+        esp = serial.Serial('COM5', 115200, timeout=None)   #Will wait for data on read 
+        #esp = serial.Serial('COM5', 115200, timeout=0   )   #No wait for data on read 
+        esp.reset_output_buffer()
+        esp.reset_input_buffer()
+    except: 
+        print("ESP432 CONNECTION FAILED")
+        print("Ensure ESP connected. Check COM port and Baud rate " )
+        quit()
 
 def getScreenRes(): 
     """Get monitor width and height, get center of screen"""
@@ -178,13 +183,13 @@ if __name__ == "__main__":
     lastshot = time.time()
 
 
-    #model = torch.hub.load('yolov5', 'custom', path=r"C:\Users\Gabe\Documents\PersonalFiles\AimLabs-BotTEST\yolov5\runs\train\AL-Nano300Epoch\weights\best.pt",\
+    #model = torch.hub.load('yolov5', 'custom', path=r"C:\Users\Gabe\Documents\PersonalFiles\ML-Hardware-Aimbot\yolov5\runs\train\AL-Nano300Epoch\weights\best.pt",\
     #                       source='local')
-    #model = torch.hub.load('yolov5', 'custom', path=r"C:\Users\Gabe\Documents\PersonalFiles\AimLabs-BotTEST\yolov5\runs\train\VAL-Nano70Epoch\weights\best.pt",\
+    #model = torch.hub.load('yolov5', 'custom', path=r"C:\Users\Gabe\Documents\PersonalFiles\ML-Hardware-Aimbot\yolov5\runs\train\VAL-Nano70Epoch\weights\best.pt",\
     #                    source='local')
-    # model = torch.hub.load('yolov5', 'custom', path=r"C:\Users\Gabe\Documents\PersonalFiles\AimLabs-BotTEST\yolov5\runs\train\CS-Nano1Epoch\weights\best.pt",\
+    # model = torch.hub.load('yolov5', 'custom', path=r"C:\Users\Gabe\Documents\PersonalFiles\ML-Hardware-Aimbot\yolov5\runs\train\CS-Nano1Epoch\weights\best.pt",\
     #                     source='local')
-    model = torch.hub.load('yolov5', 'custom', path=r"C:\Users\Gabe\Documents\PersonalFiles\AimLabs-BotTEST\yolov5\runs\train\CS-Nano300Epoch\weights\best.pt",\
+    model = torch.hub.load('yolov5', 'custom', path=r"C:\Users\Gabe\Documents\PersonalFiles\ML-Hardware-Aimbot\yolov5\runs\train\CS-Nano900Epoch\weights\best.pt",\
                         source='local')
 
     #Assign model variables 
@@ -233,6 +238,7 @@ if __name__ == "__main__":
 
             modelt1 = time.time()
             results = model(frame)
+            
             box = results.xyxyn[0].detach().cpu().clone().numpy()
             modelt2 = time.time()
             enemyNum = len(box)
@@ -269,9 +275,9 @@ if __name__ == "__main__":
                 #Assign Confidence 
                 conf = round((box[i][4]) * 100, 2)
                 #Assign Classes 
-                if box[i][5]:
+                if box[i][5] == 1:
                     lbl = 'T'
-                else:
+                elif box[i][5] == 0:
                     lbl = 'CT'
 
                 #Calculate distance to middle of screen 
