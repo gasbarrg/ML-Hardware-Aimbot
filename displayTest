@@ -1,0 +1,58 @@
+# Standard Library
+import sys
+import logging
+import tkinter as tk
+import time 
+
+logger = logging.getLogger(__name__)
+
+
+class Overlay:
+    """
+    Creates an overlay window using tkinter
+    Uses the "-topmost" property to always stay on top of other Windows
+    """
+    def __init__(self):
+        self.root = tk.Tk()
+        
+        # Set up Ping Label
+        self.ping_text = tk.StringVar()
+        self.ping_text.set("Test")
+        self.ping_label = tk.Label(
+            self.root,
+            textvariable=self.ping_text,
+            font=('Consolas', '14'),
+            fg='green3',
+            bg='grey19'
+        )
+
+        # Define Window Geometry
+        self.root.overrideredirect(True)
+        self.root.geometry("+250+250")
+        self.root.lift()
+        self.root.overrideredirect(True)
+        self.root.config(bg = '#420')
+        self.root.wm_attributes("-topmost", True)
+        self.root.wm_attributes("-disabled", True)
+        self.root.wm_attributes("-transparentcolor", "#420")
+        
+
+    def drawBox(self) -> None:
+        canvas = tk.Canvas()
+        canvas.configure(bg='#420', highlightbackground='#420', highlightthickness='0')
+        canvas.create_rectangle(1, 1, 120, 800,
+            outline="#FFF", fill="#420", )
+        canvas.pack()
+
+
+
+if __name__ == "__main__":
+    overlay = Overlay()
+    overlay.drawBox()
+    overlay.root.update()
+    
+    time.sleep(2)
+    overlay.root.quit()
+    sys.exit()    
+        
+    
