@@ -5,7 +5,7 @@
 <br>
 
 ## Purpose 
-The idea was to create an aimbot that could be used across a wide variety of games simply by training a neural network on images of whatever game you choose. Additionally, because of anti-cheat measures being able to detect mouse injections or software emulated mouse movements, an ESP432-S2 was implemented in order to act as an external mouse. 
+The idea was to create an aimbot that could be used across a wide variety of games by training a neural network on images of whatever game you choose. Additionally, because of anti-cheat measures being able to detect mouse injections or software emulated mouse movements, an ESP432-S2 was implemented in order to act as an external mouse. 
 
 ## Features 
 * Efficient screen capturing
