@@ -15,7 +15,8 @@ The idea was to create an aimbot that could be used across a wide variety of gam
 * Detection Region Selection 
 * ML Vision Display 
 
-
+## ML Vision Display Example: 
+![ML Vision](https://github.com/gasbarrg/ML-Hardware-Aimbot/blob/master/SampleCaptures/Screenshot%202023-03-27_3.png)
 
 
 
