@@ -1,6 +1,6 @@
 <h1>Machine Learning External Hardware Aimbot</h1>
 <strong>DISCLAIMER:</strong> 
-<em>This package is for educational purposes only. Cheating or botting is not allowed in CSGO, Valorant, or other competative online FPS. Do not use this package to violate the rules. Please check that the user agreement for your game allows the use of such a program!</em>
+<em>This package is for educational purposes only. Cheating or botting is not allowed in CSGO, Valorant, or other competative online FPS. Do not use this package to violate the rules. Please check that the user agreement for your game allows the use of such a program!</em><br>
 <strong>NOTICE:</strong> 
 <em>This software comes as-is. I will not be making any major updates or responces to better the ease-of-use. This software was not developed for distribution but instead for educational purposes.</em>
 <br>
