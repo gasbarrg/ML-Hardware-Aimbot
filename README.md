@@ -5,7 +5,7 @@
 <br>
 
 ## Purpose 
-The idea was to create an aimbot that could be used across a wide variety of games simply by training a neural network on images of whatever game you choose. Additionally, because of anti-cheat measures being able to detect mouse injections or software emulated mouse movements, an ESP432-S2 was implemented in order to act as an external mouse. 
+The idea was to create an aimbot that could be used across a wide variety of games by training a neural network on images of whatever game you choose. Additionally, because of anti-cheat measures being able to detect mouse injections or software emulated mouse movements, an ESP432-S2 was implemented in order to act as an external mouse. 
 
 ## Features 
 * Efficient screen capturing
@@ -15,7 +15,8 @@ The idea was to create an aimbot that could be used across a wide variety of gam
 * Detection Region Selection 
 * ML Vision Display 
 
-
+## ML Vision Display Example: 
+![ML Vision](https://github.com/gasbarrg/ML-Hardware-Aimbot/blob/master/SampleCaptures/Screenshot%202023-03-27_3.png)
 
 
 
