@@ -1,6 +1,8 @@
 <h1>Machine Learning External Hardware Aimbot</h1>
 <strong>DISCLAIMER:</strong> 
 <em>This package is for educational purposes only. Cheating or botting is not allowed in CSGO, Valorant, or other competative online FPS. Do not use this package to violate the rules. Please check that the user agreement for your game allows the use of such a program!</em>
+<strong>NOTICE:</strong> 
+<em>This software comes as-is. I will not be making any major updates or responces to better the ease-of-use. This software was not developed for distribution but instead for educational purposes.</em>
 <br>
 <br>
 
@@ -17,6 +19,13 @@ The idea was to create an aimbot that could be used across a wide variety of gam
 
 ## ML Vision Display Example: 
 ![ML Vision](https://github.com/gasbarrg/ML-Hardware-Aimbot/blob/master/SampleCaptures/Screenshot%202023-03-27_3.png)
+
+## Hardware Requirements: 
+* ESP32-S2
+![ESP32-S2](https://github.com/gasbarrg/ML-Hardware-Aimbot/blob/master/SampleCaptures/ESP32.png)
+* x2 Micro USB Cables 
+
+
 
 
 
